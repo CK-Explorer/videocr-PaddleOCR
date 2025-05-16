@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 from . import utils
 from .models import PredictedFrames, PredictedSubtitle
@@ -38,7 +39,7 @@ class Video:
         self.lang = lang
         self.use_fullframe = use_fullframe
         self.pred_frames = []
-        ocr = PaddleOCR(lang=self.lang, rec_model_dir=self.rec_model_dir, det_model_dir=self.det_model_dir, use_gpu=use_gpu)
+        ocr = PaddleOCR(lang=self.lang, rec_model_dir=self.rec_model_dir, det_model_dir=self.det_model_dir, use_gpu=use_gpu, show_log = False, use_angle_cls=False)
 
         ocr_start = utils.get_frame_index(time_start, self.fps) if time_start else 0
         ocr_end = utils.get_frame_index(time_end, self.fps) if time_end else self.num_frames
@@ -59,7 +60,7 @@ class Video:
             prev_grey = None
             predicted_frames = None
             modulo = frames_to_skip + 1
-            for i in range(num_ocr_frames):
+            for i in tqdm(range(num_ocr_frames), desc='Processed Frame'):
                 if i % modulo == 0:
                     frame = v.read()[1]
                     if frame is None:
@@ -85,7 +86,7 @@ class Video:
 
                         prev_grey = grey
 
-                    predicted_frames = PredictedFrames(i + ocr_start, ocr.ocr(frame), conf_threshold_percent)
+                    predicted_frames = PredictedFrames(i + ocr_start, ocr.ocr(frame, cls=False), conf_threshold_percent)
                     self.pred_frames.append(predicted_frames)
                 else:
                     v.read()
